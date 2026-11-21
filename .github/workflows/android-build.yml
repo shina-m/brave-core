@@ -29,16 +29,6 @@ on:
         description: JSON array of runner labels (needs >= 150 GB free disk)
         type: string
         default: '["self-hosted","linux","x64","brave-android"]'
-  push:
-    branches:
-      - youtube-media-seek
-    paths:
-      - .github/workflows/android-build.yml
-      - browser/android/youtube_script_injector/**
-      - android/java/org/chromium/chrome/browser/settings/MediaPreferences.java
-      - android/java/brave-res/xml/media_preferences.xml
-      - components/constants/pref_names.h
-      - browser/brave_profile_prefs.cc
 
 concurrency:
   group: android-build-${{ github.ref }}
