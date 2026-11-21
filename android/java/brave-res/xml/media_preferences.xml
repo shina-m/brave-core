@@ -23,6 +23,19 @@
         android:key="youtube_section"
         android:title="@string/youtube">
         <org.chromium.components.browser_ui.settings.ChromeSwitchPreference
+            android:key="youtube_media_session_seek"
+            android:title="@string/youtube_media_session_seek"
+            android:summary="@string/youtube_media_session_seek_description"
+            android:defaultValue="true" />
+        <androidx.preference.ListPreference
+            android:key="youtube_media_session_seek_step"
+            android:title="@string/youtube_media_session_seek_step"
+            android:entries="@array/youtubeMediaSessionSeekStepEntries"
+            android:entryValues="@array/youtubeMediaSessionSeekStepValues"
+            android:defaultValue="10"
+            android:persistent="false"
+            app:useSimpleSummaryProvider="true" />
+        <org.chromium.components.browser_ui.settings.ChromeSwitchPreference
             android:key="play_yt_video_in_browser"
             android:title="@string/prefs_open_youtube_links_brave" />
         <org.chromium.components.browser_ui.settings.ChromeSwitchPreference

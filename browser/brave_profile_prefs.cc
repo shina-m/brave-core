@@ -487,6 +487,8 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry) {
   registry->RegisterBooleanPref(kDesktopModeEnabled, false);
   registry->RegisterBooleanPref(kPlayYTVideoInBrowserEnabled, true);
   registry->RegisterBooleanPref(kBackgroundVideoPlaybackEnabled, true);
+  registry->RegisterBooleanPref(kYoutubeMediaSessionSeekEnabled, true);
+  registry->RegisterIntegerPref(kYoutubeMediaSessionSeekStepSeconds, 10);
   registry->RegisterBooleanPref(kSafetynetCheckFailed, false);
   registry->RegisterStringPref(kSafetynetStatus, "");
 #endif

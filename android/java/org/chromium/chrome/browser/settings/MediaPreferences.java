@@ -8,6 +8,7 @@ package org.chromium.chrome.browser.settings;
 import android.content.Context;
 import android.os.Bundle;
 
+import androidx.preference.ListPreference;
 import androidx.preference.Preference;
 
 import org.chromium.base.BraveFeatureList;
@@ -34,6 +35,9 @@ public class MediaPreferences extends BravePreferenceFragment
         implements Preference.OnPreferenceChangeListener {
     public static final String PREF_WIDEVINE_ENABLED = "widevine_enabled";
     public static final String PREF_BACKGROUND_VIDEO_PLAYBACK = "background_video_playback";
+    public static final String PREF_YOUTUBE_MEDIA_SESSION_SEEK = "youtube_media_session_seek";
+    public static final String PREF_YOUTUBE_MEDIA_SESSION_SEEK_STEP =
+            "youtube_media_session_seek_step";
     public static final String PLAY_YT_VIDEO_IN_BROWSER_KEY = "play_yt_video_in_browser";
     private static final String PREF_HIDE_YOUTUBE_RECOMMENDED_CONTENT =
             "hide_youtube_recommended_content";
@@ -63,6 +67,18 @@ public class MediaPreferences extends BravePreferenceFragment
         if (backgroundVideoPlaybackPref != null) {
             backgroundVideoPlaybackPref.setVisible(
                     ChromeFeatureList.isEnabled(BraveFeatureList.BRAVE_BACKGROUND_VIDEO_PLAYBACK));
+        }
+
+        boolean mediaSessionSeekAvailable =
+                ChromeFeatureList.isEnabled(BraveFeatureList.BRAVE_YOUTUBE_MEDIA_SESSION_SEEK);
+        Preference mediaSessionSeekPref = findPreference(PREF_YOUTUBE_MEDIA_SESSION_SEEK);
+        if (mediaSessionSeekPref != null) {
+            mediaSessionSeekPref.setVisible(mediaSessionSeekAvailable);
+        }
+        Preference mediaSessionSeekStepPref =
+                findPreference(PREF_YOUTUBE_MEDIA_SESSION_SEEK_STEP);
+        if (mediaSessionSeekStepPref != null) {
+            mediaSessionSeekStepPref.setVisible(mediaSessionSeekAvailable);
         }
     }
 
@@ -97,6 +113,29 @@ public class MediaPreferences extends BravePreferenceFragment
             backgroundVideoPlaybackPref.setChecked(
                     UserPrefs.get(getProfile())
                             .getBoolean(BravePref.BACKGROUND_VIDEO_PLAYBACK_ENABLED));
+        }
+
+        ChromeSwitchPreference mediaSessionSeekPref =
+                findPreference(PREF_YOUTUBE_MEDIA_SESSION_SEEK);
+        ListPreference mediaSessionSeekStepPref =
+                findPreference(PREF_YOUTUBE_MEDIA_SESSION_SEEK_STEP);
+        if (mediaSessionSeekPref != null
+                && ChromeFeatureList.isEnabled(BraveFeatureList.BRAVE_YOUTUBE_MEDIA_SESSION_SEEK)) {
+            boolean seekEnabled =
+                    UserPrefs.get(getProfile())
+                            .getBoolean(BravePref.YOUTUBE_MEDIA_SESSION_SEEK_ENABLED);
+            mediaSessionSeekPref.setOnPreferenceChangeListener(this);
+            mediaSessionSeekPref.setChecked(seekEnabled);
+            if (mediaSessionSeekStepPref != null) {
+                mediaSessionSeekStepPref.setValue(
+                        String.valueOf(
+                                UserPrefs.get(getProfile())
+                                        .getInteger(
+                                                BravePref
+                                                        .YOUTUBE_MEDIA_SESSION_SEEK_STEP_SECONDS)));
+                mediaSessionSeekStepPref.setEnabled(seekEnabled);
+                mediaSessionSeekStepPref.setOnPreferenceChangeListener(this);
+            }
         }
 
         ChromeSwitchPreference openYoutubeLinksBravePref =
@@ -210,6 +249,18 @@ public class MediaPreferences extends BravePreferenceFragment
             UserPrefs.get(getProfile())
                     .setBoolean(BravePref.BACKGROUND_VIDEO_PLAYBACK_ENABLED, (boolean) newValue);
             shouldRelaunch = true;
+        } else if (PREF_YOUTUBE_MEDIA_SESSION_SEEK.equals(key)) {
+            UserPrefs.get(getProfile())
+                    .setBoolean(BravePref.YOUTUBE_MEDIA_SESSION_SEEK_ENABLED, (boolean) newValue);
+            Preference seekStepPref = findPreference(PREF_YOUTUBE_MEDIA_SESSION_SEEK_STEP);
+            if (seekStepPref != null) {
+                seekStepPref.setEnabled((boolean) newValue);
+            }
+        } else if (PREF_YOUTUBE_MEDIA_SESSION_SEEK_STEP.equals(key)) {
+            UserPrefs.get(getProfile())
+                    .setInteger(
+                            BravePref.YOUTUBE_MEDIA_SESSION_SEEK_STEP_SECONDS,
+                            Integer.parseInt((String) newValue));
         } else if (PLAY_YT_VIDEO_IN_BROWSER_KEY.equals(key)) {
             BravePrefServiceBridge.getInstance().setPlayYTVideoInBrowserEnabled((boolean) newValue);
         } else if (PREF_HIDE_YOUTUBE_RECOMMENDED_CONTENT.equals(key)) {
@@ -291,6 +342,15 @@ public class MediaPreferences extends BravePreferenceFragment
                             BraveFeatureList.BRAVE_BACKGROUND_VIDEO_PLAYBACK)) {
                         indexData.removeEntryForKey(
                                 MediaPreferences.class.getName(), PREF_BACKGROUND_VIDEO_PLAYBACK);
+                    }
+
+                    if (!ChromeFeatureList.isEnabled(
+                            BraveFeatureList.BRAVE_YOUTUBE_MEDIA_SESSION_SEEK)) {
+                        indexData.removeEntryForKey(
+                                MediaPreferences.class.getName(), PREF_YOUTUBE_MEDIA_SESSION_SEEK);
+                        indexData.removeEntryForKey(
+                                MediaPreferences.class.getName(),
+                                PREF_YOUTUBE_MEDIA_SESSION_SEEK_STEP);
                     }
                 }
             };

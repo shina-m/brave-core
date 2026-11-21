@@ -40,4 +40,20 @@
         <item>@string/settings_default_wallet_option_2</item>
     </string-array>
 
+    <string-array name="youtubeMediaSessionSeekStepEntries">
+        <item>@string/youtube_seek_step_5_seconds</item>
+        <item>@string/youtube_seek_step_10_seconds</item>
+        <item>@string/youtube_seek_step_15_seconds</item>
+        <item>@string/youtube_seek_step_30_seconds</item>
+        <item>@string/youtube_seek_step_60_seconds</item>
+    </string-array>
+
+    <string-array name="youtubeMediaSessionSeekStepValues">
+        <item>5</item>
+        <item>10</item>
+        <item>15</item>
+        <item>30</item>
+        <item>60</item>
+    </string-array>
+
 </resources>
