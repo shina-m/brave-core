@@ -70,7 +70,8 @@ jobs:
           repository: ${{ github.repository }}
           ref: ${{ github.sha }}
           path: src/brave
-          fetch-depth: 1
+          fetch-depth: 0
+          fetch-tags: true
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
