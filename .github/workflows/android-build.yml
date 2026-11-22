@@ -118,6 +118,15 @@ jobs:
             || sudo ../build/install-build-deps.sh --unsupported --android --no-prompt \
             || echo "::warning::install-build-deps.sh failed; continuing with the image's packages."
 
+      - name: Fix the build timestamp for Node 24
+        run: |
+          # The lastchange hook can leave the 1970 sentinel in a shallow
+          # checkout. Chromium passes that as `--build-timestamp -2142000`,
+          # which Node 24's parseArgs rejects.
+          timestamp=$(date +%s)
+          echo "$timestamp" > src/build/util/LASTCHANGE.committime
+          echo "LASTCHANGE.committime=$timestamp"
+
       - name: Configure BravePipe signing
         working-directory: src/brave
         env:
