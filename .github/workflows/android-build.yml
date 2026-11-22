@@ -10,6 +10,8 @@
 name: Build and publish Android APK
 
 on:
+  push:
+    branches: [free-runner-build]
   workflow_dispatch:
     inputs:
       build_type:
