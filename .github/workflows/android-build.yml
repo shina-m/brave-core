@@ -177,6 +177,7 @@ jobs:
             --gn=is_java_debug:true \
             --gn=is_debug:false \
             --gn=is_component_build:false \
+            --gn=enable_android_secondary_abi:false \
             --gn=symbol_level:0 \
             --gn=blink_symbol_level:0 \
             --gn=use_thin_lto:false \
