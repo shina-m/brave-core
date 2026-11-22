@@ -16,6 +16,7 @@ BASE_DECLARE_FEATURE(kBravePictureInPictureForYouTubeVideos);
 BASE_DECLARE_FEATURE(kBraveYoutubeFullscreenSettingsWorkaround);
 BASE_DECLARE_FEATURE(kBraveYoutubeFullscreenVideoFitWorkaround);
 BASE_DECLARE_FEATURE(kBraveYoutubePlaylistMediaControlsWorkaround);
+BASE_DECLARE_FEATURE(kBraveYoutubeMediaSessionSeek);
 
 }  // namespace features
 }  // namespace preferences

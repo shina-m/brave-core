@@ -110,6 +110,10 @@ inline constexpr char kPlayYTVideoInBrowserEnabled[] =
     "brave.play_yt_video_in_browser_enabled";
 inline constexpr char kBackgroundVideoPlaybackEnabled[] =
     "brave.background_video_playback";
+inline constexpr char kYoutubeMediaSessionSeekEnabled[] =
+    "brave.youtube_media_session_seek_enabled";
+inline constexpr char kYoutubeMediaSessionSeekStepSeconds[] =
+    "brave.youtube_media_session_seek_step_seconds";
 inline constexpr char kSafetynetCheckFailed[] = "safetynetcheck.failed";
 inline constexpr char kSafetynetStatus[] = "safetynet.status";
 // Google Ads click id from the Play Store install referrer.

@@ -565,6 +565,17 @@ const char* const kBraveSyncImplLink[1] = {"https://github.com/brave/go-sync"};
       FEATURE_VALUE_TYPE(preferences::features::                            \
                              kBraveYoutubePlaylistMediaControlsWorkaround), \
   })
+#define BRAVE_YOUTUBE_MEDIA_SESSION_SEEK_ANDROID                          \
+  EXPAND_FEATURE_ENTRIES({                                                \
+      "brave-youtube-media-session-seek",                                 \
+      "Seek with YouTube media keys",                                     \
+      "Make the media notification and lock screen Previous and Next "    \
+      "controls rewind or forward m.youtube.com videos instead of "       \
+      "changing videos.",                                                 \
+      kOsAndroid,                                                         \
+      FEATURE_VALUE_TYPE(                                                 \
+          preferences::features::kBraveYoutubeMediaSessionSeek),          \
+  })
 #define BRAVE_SAFE_BROWSING_ANDROID                                           \
   EXPAND_FEATURE_ENTRIES({                                                    \
       "brave-safe-browsing",                                                  \
@@ -614,6 +625,7 @@ const char* const kBraveSyncImplLink[1] = {"https://github.com/brave/go-sync"};
 #define BRAVE_YOUTUBE_FULLSCREEN_SETTINGS_WORKAROUND_ANDROID
 #define BRAVE_YOUTUBE_FULLSCREEN_VIDEO_FIT_WORKAROUND_ANDROID
 #define BRAVE_YOUTUBE_PLAYLIST_MEDIA_CONTROLS_WORKAROUND_ANDROID
+#define BRAVE_YOUTUBE_MEDIA_SESSION_SEEK_ANDROID
 #define BRAVE_SAFE_BROWSING_ANDROID
 #define BRAVE_CUSTOM_SEARCH_ENGINES
 #define BRAVE_ANDROID_TAB_GROUPS_SETTINGS
@@ -1788,6 +1800,7 @@ constexpr flags_ui::FeatureEntry::Choice kVerticalTabMigrationChoices[] = {
   BRAVE_YOUTUBE_FULLSCREEN_SETTINGS_WORKAROUND_ANDROID                         \
   BRAVE_YOUTUBE_FULLSCREEN_VIDEO_FIT_WORKAROUND_ANDROID                        \
   BRAVE_YOUTUBE_PLAYLIST_MEDIA_CONTROLS_WORKAROUND_ANDROID                     \
+  BRAVE_YOUTUBE_MEDIA_SESSION_SEEK_ANDROID                                     \
   BRAVE_SAFE_BROWSING_ANDROID                                                  \
   BRAVE_ANDROID_TAB_GROUPS_SETTINGS                                            \
   BRAVE_ANDROID_MERGE_INSTALL_PWA_AND_CREATE_SHORTCUT                          \

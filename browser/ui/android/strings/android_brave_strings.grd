@@ -297,6 +297,30 @@ This file contains all "about" strings.  It is set to NOT be translated, in tran
       <message name="IDS_BRAVE_SHIELDS_BLOCKS_SCRIPTS_SUMMARY" desc="Switch for Block Scripts summary.">
         Blocks JavaScript (may break sites)
       </message>
+      <message name="IDS_YOUTUBE_MEDIA_SESSION_SEEK" desc="Title of the setting that makes YouTube media keys seek instead of changing videos.">
+        Seek with media keys
+      </message>
+      <message name="IDS_YOUTUBE_MEDIA_SESSION_SEEK_DESCRIPTION" desc="Summary of the setting that makes YouTube media keys seek instead of changing videos.">
+        Use Previous and Next on the lock screen, notification, headset, or watch to rewind or forward instead of changing videos.
+      </message>
+      <message name="IDS_YOUTUBE_MEDIA_SESSION_SEEK_STEP" desc="Title of the setting that chooses how many seconds YouTube media keys seek.">
+        Seek step
+      </message>
+      <message name="IDS_YOUTUBE_SEEK_STEP_5_SECONDS" desc="Seek step option for 5 seconds.">
+        5 seconds
+      </message>
+      <message name="IDS_YOUTUBE_SEEK_STEP_10_SECONDS" desc="Seek step option for 10 seconds.">
+        10 seconds
+      </message>
+      <message name="IDS_YOUTUBE_SEEK_STEP_15_SECONDS" desc="Seek step option for 15 seconds.">
+        15 seconds
+      </message>
+      <message name="IDS_YOUTUBE_SEEK_STEP_30_SECONDS" desc="Seek step option for 30 seconds.">
+        30 seconds
+      </message>
+      <message name="IDS_YOUTUBE_SEEK_STEP_60_SECONDS" desc="Seek step option for 60 seconds.">
+        1 minute
+      </message>
       <message name="IDS_BLOCK_YOUTUBE_RECOMMENDED_CONTENT" desc="Hide YouTube Recommended Content">
         Block YouTube recommended content
       </message>

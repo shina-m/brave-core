@@ -5,10 +5,13 @@
 
 #include "brave/browser/android/youtube_script_injector/youtube_script_injector_tab_helper.h"
 
+#include <algorithm>
 #include <string>
 
 #include "base/android/android_info.h"
 #include "base/feature_list.h"
+#include "base/strings/string_number_conversions.h"
+#include "base/strings/string_util.h"
 #include "brave/browser/android/youtube_script_injector/brave_youtube_script_injector_native_helper.h"
 #include "brave/browser/android/youtube_script_injector/features.h"
 #include "brave/components/brave_shields/content/browser/brave_shields_util.h"
@@ -143,6 +146,57 @@ constexpr char16_t kYoutubeFullscreenVideoFitWorkaround[] =
     }
   `;
   document.documentElement.appendChild(style);
+}());
+)";
+
+// m.youtube.com's Previous and Next media controls change videos, which on a
+// phone can leave the page or start a recommendation when the user only wants
+// to scrub. Rewrite the page's media session handlers so those controls rewind
+// or forward by the configured seek step instead.
+//
+// This script is installed before the playlist workaround below. That way,
+// when it is enabled, it wraps YouTube's handlers first and the playlist
+// wrapper's own handler is replaced by the seek handler, so seeking wins over
+// playlist navigation. When it is disabled, the playlist workaround behaves
+// exactly as before.
+constexpr char16_t kYoutubeMediaSessionSeek[] =
+    uR"(
+(function() {
+  const mediaSession = navigator.mediaSession;
+  if (!mediaSession) {
+    return;
+  }
+
+  const seekStepSeconds = $SEEK_SECONDS$;
+  const setActionHandler = mediaSession.setActionHandler.bind(mediaSession);
+
+  function seekBy(delta) {
+    const player = document.getElementById('movie_player');
+    if (!player || typeof player.seekTo !== 'function') {
+      return;
+    }
+    const current = Number(player.getCurrentTime?.()) || 0;
+    const duration = Number(player.getDuration?.()) || 0;
+    let target = current + delta;
+    if (duration > 0) {
+      target = Math.min(duration, target);
+    }
+    player.seekTo(Math.max(0, target), true);
+  }
+
+  function seekHandler(action) {
+    return function() {
+      seekBy(action === 'nexttrack' ? seekStepSeconds : -seekStepSeconds);
+    };
+  }
+
+  mediaSession.setActionHandler = function(action, handler) {
+    if (action === 'nexttrack' || action === 'previoustrack') {
+      setActionHandler(action, seekHandler(action));
+      return;
+    }
+    return setActionHandler(action, handler);
+  };
 }());
 )";
 
@@ -586,6 +640,26 @@ bool IsBackgroundVideoPlaybackEnabled(content::WebContents* contents) {
           prefs->GetBoolean(kBackgroundVideoPlaybackEnabled));
 }
 
+constexpr int kYoutubeSeekStepMinSeconds = 5;
+constexpr int kYoutubeSeekStepMaxSeconds = 60;
+
+bool IsYoutubeMediaSessionSeekEnabled(content::WebContents* contents) {
+  if (!base::FeatureList::IsEnabled(
+          preferences::features::kBraveYoutubeMediaSessionSeek)) {
+    return false;
+  }
+  PrefService* prefs =
+      static_cast<Profile*>(contents->GetBrowserContext())->GetPrefs();
+  return prefs->GetBoolean(kYoutubeMediaSessionSeekEnabled);
+}
+
+std::u16string BuildYoutubeMediaSessionSeekScript(int seek_seconds) {
+  std::u16string script(kYoutubeMediaSessionSeek);
+  base::ReplaceFirstSubstringAfterOffset(
+      &script, 0, u"$SEEK_SECONDS$", base::NumberToString16(seek_seconds));
+  return script;
+}
+
 // Mirrors the SDK gate that Java's PictureInPicture.isEnabled() applies before
 // any PiP entry attempt (see
 // chrome/android/java/src/.../media/PictureInPicture.java). PiP is
@@ -699,6 +773,16 @@ void YouTubeScriptInjectorTabHelper::PrimaryMainDocumentElementAvailable() {
           preferences::features::kBraveYoutubeFullscreenVideoFitWorkaround)) {
     contents->GetPrimaryMainFrame()->ExecuteJavaScript(
         kYoutubeFullscreenVideoFitWorkaround, base::NullCallback());
+  }
+  if (IsYoutubeMediaSessionSeekEnabled(contents)) {
+    PrefService* prefs =
+        static_cast<Profile*>(contents->GetBrowserContext())->GetPrefs();
+    const int seek_seconds =
+        std::clamp(prefs->GetInteger(kYoutubeMediaSessionSeekStepSeconds),
+                   kYoutubeSeekStepMinSeconds, kYoutubeSeekStepMaxSeconds);
+    contents->GetPrimaryMainFrame()->ExecuteJavaScript(
+        BuildYoutubeMediaSessionSeekScript(seek_seconds),
+        base::NullCallback());
   }
   if (base::FeatureList::IsEnabled(
           preferences::features::

@@ -94,6 +94,7 @@
     &download::features::kParallelDownloading,                                 \
     &preferences::features::kBraveBackgroundVideoPlayback,                     \
     &preferences::features::kBravePictureInPictureForYouTubeVideos,            \
+    &preferences::features::kBraveYoutubeMediaSessionSeek,                     \
     &request_otr::features::kBraveRequestOTRTab,                               \
     &safe_browsing::features::kBraveAndroidSafeBrowsing,                       \
     &debounce::features::kBraveDebounce,                                       \
