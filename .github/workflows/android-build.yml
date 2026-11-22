@@ -1,10 +1,12 @@
 # Builds and publishes a signed Brave for Android APK from this fork.
 #
-# Chromium for Android needs roughly 150 GB of free disk (checkout + build
-# output) and 16 GB+ of RAM. GitHub-hosted runners only provide about 14 GB,
-# so this job defaults to a self-hosted runner. Point `runner_labels` at a
-# larger runner (or a self-hosted machine) that already has the
-# prerequisites from the Android Development Environment wiki page.
+# GitHub's 4-core public-repository runner currently has a 145 GB disk with
+# about 88 GB free (the docs only guarantee 14 GB). That is enough for a
+# trimmed build, so the workflow frees optional toolchains, syncs without git
+# history, and disables symbols/LTO to stay inside it.
+#
+# A self-hosted runner with more disk can still be selected with
+# `runner_labels`; the trimming is harmless there too.
 name: Build and publish Android APK
 
 on:
@@ -26,9 +28,9 @@ on:
           - x64
         default: arm64
       runner_labels:
-        description: JSON array of runner labels (needs >= 150 GB free disk)
+        description: JSON array of runner labels
         type: string
-        default: '["self-hosted","linux","x64","brave-android"]'
+        default: '["ubuntu-latest"]'
       publish:
         description: Create a GitHub release with the APK
         type: boolean
@@ -43,17 +45,17 @@ permissions:
 
 jobs:
   build:
-    name: Build ${{ inputs.build_type }} (${{ inputs.target_arch }})
-    runs-on: ${{ fromJSON(inputs.runner_labels) }}
-    timeout-minutes: 480
+    name: Build ${{ inputs.build_type || 'Release' }} (${{ inputs.target_arch || 'arm64' }})
+    runs-on: ${{ fromJSON(inputs.runner_labels || '["ubuntu-latest"]') }}
+    timeout-minutes: 350
 
     steps:
       - name: Check free disk
         run: |
           available_gb=$(df -Pk "$GITHUB_WORKSPACE" | awk 'NR==2 {print int($4 / 1024 / 1024)}')
           echo "Free disk: ${available_gb} GB"
-          if [ "$available_gb" -lt 120 ]; then
-            echo "::error::Chromium for Android needs at least 120 GB free, found ${available_gb} GB. Use a runner with 160 GB or more (for example blacksmith-8vcpu-ubuntu-2404)."
+          if [ "$available_gb" -lt 50 ]; then
+            echo "::error::Chromium for Android needs at least 50 GB after cleanup, found ${available_gb} GB."
             exit 1
           fi
 
@@ -70,8 +72,7 @@ jobs:
           repository: ${{ github.repository }}
           ref: ${{ github.sha }}
           path: src/brave
-          fetch-depth: 0
-          fetch-tags: true
+          fetch-depth: 1
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -83,18 +84,37 @@ jobs:
         with:
           version: 11
 
+      - name: Free disk space
+        run: |
+          set -x
+          sudo rm -rf /usr/local/.ghcup /usr/share/dotnet /usr/share/swift \
+            /usr/local/julia* /usr/local/share/miniconda /usr/local/share/boost \
+            /opt/hostedtoolcache/CodeQL /opt/hostedtoolcache/Ruby \
+            /opt/hostedtoolcache/Go /opt/hostedtoolcache/PyPy 2>/dev/null || true
+          sudo docker system prune -af 2>/dev/null || true
+          sudo apt-get clean 2>/dev/null || true
+          df -h /
+
       - name: Sync Chromium and apply Brave patches
         working-directory: src/brave
-        run: pnpm run init --target_os=android --target_arch=${{ inputs.target_arch }}
+        run: |
+          pnpm run init --no-history \
+            --target_os=android \
+            --target_arch=${{ inputs.target_arch || 'arm64' }}
+          df -h /
 
       - name: Install Chromium build dependencies
         working-directory: src/brave
         run: |
-          if [ -x ../build/install-build-deps.sh ]; then
-            sudo ../build/install-build-deps.sh --android --no-prompt
-          else
+          if [ ! -x ../build/install-build-deps.sh ]; then
             echo "::warning::install-build-deps.sh not found; assuming the runner is preconfigured."
+            exit 0
           fi
+          # The hosted image already carries most of these; the script is
+          # idempotent. Ubuntu 26.04 may need --unsupported.
+          sudo ../build/install-build-deps.sh --android --no-prompt \
+            || sudo ../build/install-build-deps.sh --unsupported --android --no-prompt \
+            || echo "::warning::install-build-deps.sh failed; continuing with the image's packages."
 
       - name: Configure BravePipe signing
         working-directory: src/brave
@@ -107,7 +127,7 @@ jobs:
         run: |
           if [ -z "$KEYSTORE_BASE64" ] || [ -z "$KEYSTORE_PASSWORD" ] \
               || [ -z "$KEY_ALIAS" ] || [ -z "$KEY_PASSWORD" ]; then
-            echo "::error::BravePipe signing secrets are missing (BRAVEPIPE_KEYSTORE_BASE64, BRAVEPIPE_KEYSTORE_PASSWORD, BRAVEPIPE_KEY_ALIAS, BRAVEPIPE_KEY_PASSWORD)."
+            echo "::error::BravePipe signing secrets are missing."
             exit 1
           fi
           printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
@@ -134,12 +154,23 @@ jobs:
       - name: Build APK
         working-directory: src/brave
         env:
-          JAVA_OPTS: -Xmx10G -Xms1G
+          JAVA_OPTS: -Xmx6G -Xms512M
         run: |
-          pnpm run build ${{ inputs.build_type }} \
+          df -h /
+          pnpm run build ${{ inputs.build_type || 'Release' }} \
             --target_os=android \
-            --target_arch=${{ inputs.target_arch }} \
-            --target_android_output_format=apk
+            --target_arch=${{ inputs.target_arch || 'arm64' }} \
+            --target_android_output_format=apk \
+            --gn=is_official_build:false \
+            --gn=is_debug:false \
+            --gn=is_component_build:false \
+            --gn=symbol_level:0 \
+            --gn=blink_symbol_level:0 \
+            --gn=use_thin_lto:false \
+            --gn=dcheck_always_on:false \
+            --gn=exclude_unwind_tables:true \
+            --gn=enable_proguard_obfuscation:false
+          df -h /
 
       - name: Ensure the APK is signed with the BravePipe key
         env:
@@ -149,7 +180,7 @@ jobs:
           KEYSTORE_PATH: ${{ runner.temp }}/bravepipe-fork.keystore
         run: |
           set -euo pipefail
-          APK=$(find "src/out/android_${{ inputs.build_type }}_${{ inputs.target_arch }}" \
+          APK=$(find "src/out/android_${{ inputs.build_type || 'Release' }}_${{ inputs.target_arch || 'arm64' }}" \
             -path '*/apks/Brave*.apk' -print -quit)
           if [ -z "$APK" ]; then
             echo "::error::No APK was produced."
@@ -194,13 +225,13 @@ jobs:
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: brave-android-${{ inputs.build_type }}-${{ inputs.target_arch }}
-          path: src/out/android_${{ inputs.build_type }}_${{ inputs.target_arch }}/apks/Brave*.apk
+          name: brave-android-${{ inputs.build_type || 'Release' }}-${{ inputs.target_arch || 'arm64' }}
+          path: src/out/android_${{ inputs.build_type || 'Release' }}_${{ inputs.target_arch || 'arm64' }}/apks/Brave*.apk
           if-no-files-found: error
           retention-days: 14
 
       - name: Publish GitHub release
-        if: ${{ inputs.publish }}
+        if: ${{ inputs.publish || github.event_name == 'push' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -208,7 +239,7 @@ jobs:
           version=$(node -p "require('./src/brave/package.json').version")
           tag="android-v${version}-${GITHUB_RUN_NUMBER}-${GITHUB_RUN_ATTEMPT}"
           apk="$SIGNED_APK"
-          asset="Brave-Android-${version}-${inputs.target_arch}.apk"
+          asset="Brave-Android-${version}-${{ inputs.target_arch || 'arm64' }}.apk"
           cp "$apk" "$RUNNER_TEMP/$asset"
           (cd "$RUNNER_TEMP" && sha256sum "$asset" > "$asset.sha256")
 
@@ -219,8 +250,8 @@ jobs:
             --title "Brave Android ${version} (${GITHUB_RUN_NUMBER})" \
             --notes "Brave for Android built from \`${GITHUB_SHA}\` with the YouTube media-key seek change.
 
-          - Arch: \`${inputs.target_arch}\`
-          - Build type: \`${inputs.build_type}\`
+          - Arch: \`${{ inputs.target_arch || 'arm64' }}\`
+          - Build type: \`${{ inputs.build_type || 'Release' }}\`
           - Signed with the BravePipe fork key
 
           Settings: **Settings → Media → YouTube → Seek with media keys** (default on), with a 5/10/15/30/60 second seek step." \
@@ -233,7 +264,7 @@ jobs:
             echo ""
             echo "- APK: \`$SIGNED_APK\`"
             echo "- Signed with the BravePipe fork key"
-            if [ "${{ inputs.publish }}" = "true" ]; then
+            if [ "${{ inputs.publish || github.event_name == 'push' }}" = "true" ]; then
               echo "- Release tag: \`android-v$(node -p "require('./src/brave/package.json').version")-${GITHUB_RUN_NUMBER}-${GITHUB_RUN_ATTEMPT}\`"
             fi
           } >> "$GITHUB_STEP_SUMMARY"
