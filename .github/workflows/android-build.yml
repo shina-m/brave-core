@@ -164,6 +164,7 @@ jobs:
             --target_arch=${{ inputs.target_arch || 'arm64' }} \
             --target_android_output_format=apk \
             --gn=is_official_build:false \
+            --gn=is_java_debug:true \
             --gn=is_debug:false \
             --gn=is_component_build:false \
             --gn=symbol_level:0 \
