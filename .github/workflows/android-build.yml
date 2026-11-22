@@ -52,8 +52,8 @@ jobs:
         run: |
           available_gb=$(df -Pk "$GITHUB_WORKSPACE" | awk 'NR==2 {print int($4 / 1024 / 1024)}')
           echo "Free disk: ${available_gb} GB"
-          if [ "$available_gb" -lt 150 ]; then
-            echo "::error::Chromium for Android needs at least 150 GB free, found ${available_gb} GB. Use a self-hosted or larger runner."
+          if [ "$available_gb" -lt 120 ]; then
+            echo "::error::Chromium for Android needs at least 120 GB free, found ${available_gb} GB. Use a runner with 160 GB or more (for example blacksmith-8vcpu-ubuntu-2404)."
             exit 1
           fi
 
@@ -86,6 +86,15 @@ jobs:
       - name: Sync Chromium and apply Brave patches
         working-directory: src/brave
         run: pnpm run init --target_os=android --target_arch=${{ inputs.target_arch }}
+
+      - name: Install Chromium build dependencies
+        working-directory: src/brave
+        run: |
+          if [ -x ../build/install-build-deps.sh ]; then
+            sudo ../build/install-build-deps.sh --android --no-prompt
+          else
+            echo "::warning::install-build-deps.sh not found; assuming the runner is preconfigured."
+          fi
 
       - name: Configure BravePipe signing
         working-directory: src/brave
